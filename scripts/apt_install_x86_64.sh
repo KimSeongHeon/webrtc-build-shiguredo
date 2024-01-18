@@ -6,7 +6,7 @@ set -ex
 # ref: https://github.com/community/community/discussions/47863
 apt-mark hold grub-efi-amd64-signed
 apt-get update --fix-missing
-apt-get upgrade
+apt-get upgrade -y
 
 # tzdata を noninteractive にしないと実行が止まってしまう
 apt-get -y install tzdata
