@@ -1,0 +1,240 @@
+diff --git a/audio/audio_send_stream.cc b/audio/audio_send_stream.cc
+index 0caf59a20e..022767ed7e 100644
+--- a/audio/audio_send_stream.cc
++++ b/audio/audio_send_stream.cc
+@@ -413,12 +413,14 @@ bool AudioSendStream::SendTelephoneEvent(int payload_type,
+                                                   payload_frequency);
+   return channel_send_->SendTelephoneEventOutband(event, duration_ms);
+ }
+-
+ void AudioSendStream::SetMuted(bool muted) {
+   RTC_DCHECK_RUN_ON(&worker_thread_checker_);
+   channel_send_->SetInputMute(muted);
+ }
+-
++bool AudioSendStream::GetMuted() {
++  RTC_DCHECK_RUN_ON(&worker_thread_checker_);
++  return channel_send_->InputMute();
++}
+ webrtc::AudioSendStream::Stats AudioSendStream::GetStats() const {
+   return GetStats(true);
+ }
+diff --git a/audio/audio_send_stream.h b/audio/audio_send_stream.h
+index 62ccd524cb..780ea1350a 100644
+--- a/audio/audio_send_stream.h
++++ b/audio/audio_send_stream.h
+@@ -95,6 +95,7 @@ class AudioSendStream final : public webrtc::AudioSendStream,
+                           int payload_frequency,
+                           int event,
+                           int duration_ms) override;
++  bool GetMuted() override;
+   void SetMuted(bool muted) override;
+   webrtc::AudioSendStream::Stats GetStats() const override;
+   webrtc::AudioSendStream::Stats GetStats(
+diff --git a/audio/audio_state.cc b/audio/audio_state.cc
+index 6f20e7b128..7575f8b983 100644
+--- a/audio/audio_state.cc
++++ b/audio/audio_state.cc
+@@ -98,16 +98,27 @@ void AudioState::AddSendingStream(webrtc::AudioSendStream* stream,
+   UpdateAudioTransportWithSendingStreams();
+ 
+   // Make sure recording is initialized; start recording if enabled.
+-  auto* adm = config_.audio_device_module.get();
+-  if (!adm->Recording()) {
+-    if (adm->InitRecording() == 0) {
+-      if (recording_enabled_) {
+-        adm->StartRecording();
+-      }
+-    } else {
+-      RTC_DLOG_F(LS_ERROR) << "Failed to initialize recording.";
++  if (ShouldRecord()) {
++      auto* adm = config_.audio_device_module.get();
++      if (!adm->Recording()) {
++        if (adm->InitRecording() == 0) {
++          if (recording_enabled_) {
++#if defined(WEBRTC_WIN)
++            if (adm->BuiltInAECIsAvailable() && !adm->Playing()) {
++              if (!adm->PlayoutIsInitialized()) {
++                adm->InitPlayout();
++              }
++              adm->StartPlayout();
++            }
++#endif
++            adm->StartRecording();
++          }
++        } else {
++          RTC_DLOG_F(LS_ERROR) << "Failed to initialize recording.";
++        }
+     }
+   }
++  
+ }
+ 
+ void AudioState::RemoveSendingStream(webrtc::AudioSendStream* stream) {
+@@ -115,7 +126,7 @@ void AudioState::RemoveSendingStream(webrtc::AudioSendStream* stream) {
+   auto count = sending_streams_.erase(stream);
+   RTC_DCHECK_EQ(1, count);
+   UpdateAudioTransportWithSendingStreams();
+-  if (sending_streams_.empty()) {
++  if (!ShouldRecord()) {
+     config_.audio_device_module->StopRecording();
+   }
+ }
+@@ -143,7 +154,7 @@ void AudioState::SetRecording(bool enabled) {
+   if (recording_enabled_ != enabled) {
+     recording_enabled_ = enabled;
+     if (enabled) {
+-      if (!sending_streams_.empty()) {
++      if (ShouldRecord()) {
+         config_.audio_device_module->StartRecording();
+       }
+     } else {
+@@ -170,7 +181,34 @@ void AudioState::UpdateAudioTransportWithSendingStreams() {
+   audio_transport_.UpdateAudioSenders(std::move(audio_senders),
+                                       max_sample_rate_hz, max_num_channels);
+ }
++void AudioState::OnMuteStreamChanged() {
++  auto *adm = config_.audio_device_module.get();
++  bool should_record = ShouldRecord();
++
++  if (should_record && !adm->Recording()) {
++    if (adm->InitRecording() == 0) {
++      adm->StartRecording();
++    }
++  } else if (!should_record && adm->Recording()) {
++    adm->StopRecording();
++  }
++}
++bool AudioState::ShouldRecord() {
++  if (sending_streams_.empty()) {
++    return false;
++  }
+ 
++  int stream_count = sending_streams_.size();
++
++  int muted_count = 0;
++  for (const auto& kv : sending_streams_) {
++    if (kv.first->GetMuted()) {
++      muted_count++;
++    }
++  }
++
++  return muted_count != stream_count;
++}
+ void AudioState::UpdateNullAudioPollerState() {
+   // Run NullAudioPoller when there are receiving streams and playout is
+   // disabled.
+diff --git a/audio/audio_state.h b/audio/audio_state.h
+index 88aaaa3697..4908b7ee8b 100644
+--- a/audio/audio_state.h
++++ b/audio/audio_state.h
+@@ -47,6 +47,8 @@ class AudioState : public webrtc::AudioState {
+ 
+   void SetStereoChannelSwapping(bool enable) override;
+ 
++  void OnMuteStreamChanged() override;
++
+   AudioDeviceModule* audio_device_module() {
+     RTC_DCHECK(config_.audio_device_module);
+     return config_.audio_device_module.get();
+@@ -64,6 +66,8 @@ class AudioState : public webrtc::AudioState {
+   void UpdateAudioTransportWithSendingStreams();
+   void UpdateNullAudioPollerState() RTC_RUN_ON(&thread_checker_);
+ 
++  bool ShouldRecord();
++
+   SequenceChecker thread_checker_;
+   SequenceChecker process_thread_checker_{SequenceChecker::kDetached};
+   const webrtc::AudioState::Config config_;
+diff --git a/audio/channel_send.cc b/audio/channel_send.cc
+index e3058fca0d..dfca88c623 100644
+--- a/audio/channel_send.cc
++++ b/audio/channel_send.cc
+@@ -98,6 +98,8 @@ class ChannelSend : public ChannelSendInterface,
+   // Muting, Volume and Level.
+   void SetInputMute(bool enable) override;
+ 
++  bool InputMute() const override;
++
+   // Stats.
+   ANAStats GetANAStatistics() const override;
+ 
+@@ -161,8 +163,6 @@ class ChannelSend : public ChannelSendInterface,
+                    size_t payloadSize,
+                    int64_t absolute_capture_timestamp_ms) override;
+ 
+-  bool InputMute() const;
+-
+   int32_t SendRtpAudio(AudioFrameType frameType,
+                        uint8_t payloadType,
+                        uint32_t rtp_timestamp_without_offset,
+diff --git a/audio/channel_send.h b/audio/channel_send.h
+index 00d954c952..b40b8b3bc8 100644
+--- a/audio/channel_send.h
++++ b/audio/channel_send.h
+@@ -82,6 +82,7 @@ class ChannelSendInterface {
+   virtual bool SendTelephoneEventOutband(int event, int duration_ms) = 0;
+   virtual void OnBitrateAllocation(BitrateAllocationUpdate update) = 0;
+   virtual int GetTargetBitrate() const = 0;
++  virtual bool InputMute() const = 0;
+   virtual void SetInputMute(bool muted) = 0;
+ 
+   virtual void ProcessAndEncodeAudio(
+diff --git a/call/audio_send_stream.h b/call/audio_send_stream.h
+index 9c2fad652f..7e73ab2ce6 100644
+--- a/call/audio_send_stream.h
++++ b/call/audio_send_stream.h
+@@ -190,6 +190,7 @@ class AudioSendStream : public AudioSender {
+                                   int event,
+                                   int duration_ms) = 0;
+ 
++  virtual bool GetMuted() = 0;
+   virtual void SetMuted(bool muted) = 0;
+ 
+   virtual Stats GetStats() const = 0;
+diff --git a/call/audio_state.h b/call/audio_state.h
+index 79fb5cf981..aee0b0e7cd 100644
+--- a/call/audio_state.h
++++ b/call/audio_state.h
+@@ -59,6 +59,8 @@ class AudioState : public rtc::RefCountInterface {
+ 
+   virtual void SetStereoChannelSwapping(bool enable) = 0;
+ 
++  virtual void OnMuteStreamChanged() = 0;
++
+   static rtc::scoped_refptr<AudioState> Create(
+       const AudioState::Config& config);
+ 
+diff --git a/media/engine/webrtc_voice_engine.cc b/media/engine/webrtc_voice_engine.cc
+index 63abe1c93a..0e0092458c 100644
+--- a/media/engine/webrtc_voice_engine.cc
++++ b/media/engine/webrtc_voice_engine.cc
+@@ -1707,6 +1707,7 @@ bool WebRtcVoiceSendChannel::MuteStream(uint32_t ssrc, bool muted) {
+     ap->set_output_will_be_muted(all_muted);
+   }
+ 
++  engine_->audio_state()->OnMuteStreamChanged();
+   return true;
+ }
+ 
+diff --git a/media/engine/webrtc_voice_engine.h b/media/engine/webrtc_voice_engine.h
+index a3e6d3acab..8491f35707 100644
+--- a/media/engine/webrtc_voice_engine.h
++++ b/media/engine/webrtc_voice_engine.h
+@@ -134,6 +134,8 @@ class WebRtcVoiceEngine final : public VoiceEngineInterface {
+   // Stops AEC dump.
+   void StopAecDump() override;
+ 
++  webrtc::AudioState* audio_state();
++
+   absl::optional<webrtc::AudioDeviceModule::Stats> GetAudioDeviceStats()
+       override;
+ 
+@@ -148,7 +150,6 @@ class WebRtcVoiceEngine final : public VoiceEngineInterface {
+ 
+   webrtc::AudioDeviceModule* adm();
+   webrtc::AudioProcessing* apm() const;
+-  webrtc::AudioState* audio_state();
+ 
+   std::vector<AudioCodec> CollectCodecs(
+       const std::vector<webrtc::AudioCodecSpec>& specs) const;
