@@ -1,0 +1,129 @@
+diff --git a/build/config/clang/clang.gni b/build/config/clang/clang.gni
+index 1e6621848..550b3e7e8 100644
+--- a/build/config/clang/clang.gni
++++ b/build/config/clang/clang.gni
+@@ -10,9 +10,9 @@ declare_args() {
+   # Indicates if the build should use the Chrome-specific plugins for enforcing
+   # coding guidelines, etc. Only used when compiling with Chrome's Clang, not
+   # Chrome OS's.
+-  clang_use_chrome_plugins =
+-      is_clang && !is_nacl && current_os != "zos" &&
+-      default_toolchain != "//build/toolchain/cros:target"
++  clang_use_chrome_plugins = false
++      # is_clang && !is_nacl && current_os != "zos" &&
++      # default_toolchain != "//build/toolchain/cros:target"
+ 
+   clang_base_path = default_clang_base_path
+ }
+diff --git a/build/config/compiler/BUILD.gn b/build/config/compiler/BUILD.gn
+index 80bc79e5f..5835cb0f8 100644
+--- a/build/config/compiler/BUILD.gn
++++ b/build/config/compiler/BUILD.gn
+@@ -484,8 +484,8 @@ config("compiler") {
+     # faster.
+     # On arm64, this is already the default behavior.
+     if (current_cpu == "x64") {
+-      asmflags += [ "-femit-dwarf-unwind=no-compact-unwind" ]
+-      cflags += [ "-femit-dwarf-unwind=no-compact-unwind" ]
++      #asmflags += [ "-femit-dwarf-unwind=no-compact-unwind" ]
++      #cflags += [ "-femit-dwarf-unwind=no-compact-unwind" ]
+     }
+ 
+     # dsymutil is not available in the system, on bots, for rustc to call. Our
+@@ -593,55 +593,6 @@ config("compiler") {
+     ldflags += [ "-Wl,-z,keep-text-section-prefix" ]
+   }
+ 
+-  if (is_clang && !is_nacl && current_os != "zos") {
+-    cflags += [ "-fcrash-diagnostics-dir=" + clang_diagnostic_dir ]
+-    if (save_reproducers_on_lld_crash && use_lld) {
+-      ldflags += [
+-        "-fcrash-diagnostics=all",
+-        "-fcrash-diagnostics-dir=" + clang_diagnostic_dir,
+-      ]
+-    }
+-
+-    # TODO(hans): Remove this once Clang generates better optimized debug info
+-    # by default. https://crbug.com/765793
+-    cflags += [
+-      "-mllvm",
+-      "-instcombine-lower-dbg-declare=0",
+-    ]
+-    if (!is_debug && use_thin_lto && is_a_target_toolchain) {
+-      if (is_win) {
+-        ldflags += [ "-mllvm:-instcombine-lower-dbg-declare=0" ]
+-      } else {
+-        ldflags += [ "-Wl,-mllvm,-instcombine-lower-dbg-declare=0" ]
+-      }
+-    }
+-
+-    # TODO(crbug.com/1488374): This causes binary size growth and potentially
+-    # other problems.
+-    # TODO(crbug.com/1491036): This isn't supported by Cronet's mainline llvm version.
+-    if (default_toolchain != "//build/toolchain/cros:target" &&
+-        !llvm_android_mainline) {
+-      cflags += [
+-        "-mllvm",
+-        "-split-threshold-for-reg-with-hint=0",
+-      ]
+-      if (use_thin_lto && is_a_target_toolchain) {
+-        if (is_win) {
+-          ldflags += [ "-mllvm:-split-threshold-for-reg-with-hint=0" ]
+-        } else {
+-          ldflags += [ "-Wl,-mllvm,-split-threshold-for-reg-with-hint=0" ]
+-        }
+-      }
+-    }
+-
+-    # TODO(crbug.com/1235145): Investigate why/if this should be needed.
+-    if (is_win) {
+-      cflags += [ "/clang:-ffp-contract=off" ]
+-    } else {
+-      cflags += [ "-ffp-contract=off" ]
+-    }
+-  }
+-
+   # C11/C++11 compiler flags setup.
+   # ---------------------------
+   if (is_linux || is_chromeos || is_android || (is_nacl && is_clang) ||
+diff --git a/build/toolchain/apple/toolchain.gni b/build/toolchain/apple/toolchain.gni
+index 399a62f03..de13c3373 100644
+--- a/build/toolchain/apple/toolchain.gni
++++ b/build/toolchain/apple/toolchain.gni
+@@ -121,7 +121,8 @@ template("apple_toolchain") {
+       toolchain_is_component_build = is_component_build
+     }
+ 
+-    prefix = rebase_path("$clang_base_path/bin/", root_build_dir)
++    # prefix = rebase_path("$clang_base_path/bin/", root_build_dir)
++    prefix = invoker.bin_path
+     _cc = "${prefix}clang"
+     _cxx = "${prefix}clang++"
+ 
+diff --git a/build/toolchain/mac/BUILD.gn b/build/toolchain/mac/BUILD.gn
+index 0adce9400..d2b6a5b57 100644
+--- a/build/toolchain/mac/BUILD.gn
++++ b/build/toolchain/mac/BUILD.gn
+@@ -23,7 +23,7 @@ template("mac_toolchain") {
+ 
+       if (target_os == "ios") {
+         # Use LLD for the host part of a chrome/ios build.
+-        use_lld = true
++        use_lld = false
+ 
+         # Defined in //base, would trigger a warning if the build doesn't depend
+         # on it.
+ 
+diff --git a/third_party/nasm/BUILD.gn b/third_party/nasm/BUILD.gn
+index ebd8b7fe..20f6ff8a 100644
+--- a/third_party/nasm/BUILD.gn
++++ b/third_party/nasm/BUILD.gn
+@@ -80,7 +80,7 @@ config("nasm_config") {
+       "-Wno-uninitialized",
+ 
+       # NASM sometimes set variables but doesn't use them.
+-      "-Wno-unused-but-set-variable",
++      # "-Wno-unused-but-set-variable",
+     ]
+   } else if (is_win) {
+     # Please note that's a slightly different set of warnings.

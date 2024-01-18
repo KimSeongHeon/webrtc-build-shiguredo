@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CheckStyle-IDEA" serialisationVersion="2">
+    <checkstyleVersion>10.3.2</checkstyleVersion>
+    <scanScope>JavaOnly</scanScope>
+    <option name="thirdPartyClasspath" />
+    <option name="activeLocationIds">
+      <option value="18c42cd6-5e67-4236-a8a4-0c48568c692c" />
+    </option>
+    <option name="locations">
+      <list>
+        <ConfigurationLocation id="bundled-sun-checks" type="BUNDLED" scope="All" description="Sun Checks">(bundled)</ConfigurationLocation>
+        <ConfigurationLocation id="bundled-google-checks" type="BUNDLED" scope="All" description="Google Checks">(bundled)</ConfigurationLocation>
+        <ConfigurationLocation id="18c42cd6-5e67-4236-a8a4-0c48568c692c" type="LOCAL_FILE" scope="All" description="naver-checkstyle-rules">$USER_HOME$/Documents/GitHub/oneapp_android/config/checkstyle/naver-checkstyle-rules.xml</ConfigurationLocation>
+      </list>
+    </option>
+  </component>
+</project>
