@@ -3,36 +3,36 @@ on:
   workflow_dispatch:
     inputs:
 jobs:
-  build-macos:
-    strategy:
-      fail-fast: false
-      matrix:
-        name:
-          - ios
-    runs-on: macos-13
-    timeout-minutes: 900
-    steps:
-      - uses: actions/checkout@v4
-      - name: Select Xcode 14.3.1
-        run: sudo xcode-select --switch /Applications/Xcode_14.3.1.app/Contents/Developer
-      - run: brew install ninja
-      - name: Build ${{ matrix.name }} for macos
-        if: matrix.name == 'macos_arm64'
-        run: |
-          pip3 install setuptools
-          python3 run.py build ${{ matrix.name }}
-          python3 run.py package ${{ matrix.name }}
-      - name: Build ${{ matrix.name }} for ios
-        if: matrix.name == 'ios'
-        run: |
-          pip3 install setuptools
-          python3 run.py build ${{ matrix.name }} --webrtc-overlap-ios-build-dir
-          python3 run.py package ${{ matrix.name }} --webrtc-overlap-ios-build-dir
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: webrtc.${{ matrix.name }}.tar.gz
-          path: _package/${{ matrix.name }}/webrtc.${{ matrix.name }}.tar.gz
+  # build-macos:
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       name:
+  #         - ios
+  #   runs-on: macos-13
+  #   timeout-minutes: 900
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Select Xcode 14.3.1
+  #       run: sudo xcode-select --switch /Applications/Xcode_14.3.1.app/Contents/Developer
+  #     - run: brew install ninja
+  #     - name: Build ${{ matrix.name }} for macos
+  #       if: matrix.name == 'macos_arm64'
+  #       run: |
+  #         pip3 install setuptools
+  #         python3 run.py build ${{ matrix.name }}
+  #         python3 run.py package ${{ matrix.name }}
+  #     - name: Build ${{ matrix.name }} for ios
+  #       if: matrix.name == 'ios'
+  #       run: |
+  #         pip3 install setuptools
+  #         python3 run.py build ${{ matrix.name }} --webrtc-overlap-ios-build-dir
+  #         python3 run.py package ${{ matrix.name }} --webrtc-overlap-ios-build-dir
+  #     - name: Upload Artifact
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: webrtc.${{ matrix.name }}.tar.gz
+  #         path: _package/${{ matrix.name }}/webrtc.${{ matrix.name }}.tar.gz
   build-linux:
     strategy:
       fail-fast: false
