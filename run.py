@@ -218,6 +218,7 @@ PATCHES = {
         # 'ssl_verify_callback_with_native_handle.patch',
         'android_webrtc_version.patch',
         'control_mic_indicator.patch',
+        'jni_prefix_for_android.patch'
         # 'android_fixsegv.patch',
         # 'android_simulcast.patch',
         # 'android_hardware_video_encoder.patch',
