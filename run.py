@@ -449,7 +449,7 @@ def get_build_targets(target):
 
 
 IOS_ARCHS = ['device:arm64']
-IOS_FRAMEWORK_ARCHS = ['simulator:arm64', 'device:arm64']
+IOS_FRAMEWORK_ARCHS = ['simulator:x64', 'simulator:arm64', 'device:arm64']
 
 
 def to_gn_args(gn_args: List[str], extra_gn_args: str) -> str:
@@ -573,10 +573,12 @@ def build_webrtc_ios(
     cmd(['lipo', *libs, '-create', '-output', os.path.join(webrtc_build_dir, 'libwebrtc.a')])
 
 
-ANDROID_ARCHS = ['armeabi-v7a', 'arm64-v8a']
+ANDROID_ARCHS = ['armeabi-v7a', 'arm64-v8a', 'x86_64', 'x86']
 ANDROID_TARGET_CPU = {
     'armeabi-v7a': 'arm',
     'arm64-v8a': 'arm64',
+    'x86_64': 'x64',
+    'x86': 'x86',
 }
 
 
