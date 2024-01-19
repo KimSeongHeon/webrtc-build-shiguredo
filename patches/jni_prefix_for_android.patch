@@ -78,7 +78,7 @@ diff --git a/third_party/jni_zero/jni_generator.py b/third_party/jni_zero/jni_ge
  def GetRegistrationFunctionName(fully_qualified_class):
    """Returns the register name with a given class."""
 -  return 'RegisterNative_' + common.escape_class_name(fully_qualified_class)
-+  return 'RegisterNative_' + 'Navercloud_' + common.escape_class_name(fully_qualified_class)
++  return 'RegisterNative_' + 'Navercld_' + common.escape_class_name(fully_qualified_class)
  
  
  def _StaticCastForType(java_type):
