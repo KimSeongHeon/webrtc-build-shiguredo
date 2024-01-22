@@ -43,17 +43,6 @@ jobs:
     timeout-minutes: 900
     steps:
       - uses: actions/checkout@v4
-      - name: Disk Cleanup
-        run: |
-          df -h
-          docker system prune -f
-          docker container prune -f
-          docker image prune -a -f
-          # 3.9GB
-          sudo rm -rf /usr/local/share/boost
-          # 17GB
-          sudo rm -rf /usr/share/dotnet
-          df -h
       - name: Setup ${{ matrix.name }} for x86_64
         if: endsWith(matrix.name, '_x86_64')
         run: sudo scripts/apt_install_x86_64.sh
