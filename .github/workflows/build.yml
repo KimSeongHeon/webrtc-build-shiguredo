@@ -43,9 +43,13 @@ jobs:
     timeout-minutes: 900
     steps:
       - uses: actions/checkout@v3
-      - name: Setup ${{ matrix.name }} for android
-        if: matrix.name == 'android'
-        uses: android-actions/setup-android@v2
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
       - name: Build ${{ matrix.name }}
         run: |
           python3 run.py build ${{ matrix.name }}
