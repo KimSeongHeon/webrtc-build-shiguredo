@@ -42,7 +42,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 900
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       - name: Setup ${{ matrix.name }} for x86_64
         if: endsWith(matrix.name, '_x86_64')
         run: sudo scripts/apt_install_x86_64.sh
