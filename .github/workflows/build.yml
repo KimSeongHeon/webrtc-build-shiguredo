@@ -54,8 +54,8 @@ jobs:
         run: sudo scripts/apt_install_x86_64.sh
       - name: Build ${{ matrix.name }}
         run: |
-          python3 run.py build ${{ matrix.name }}
-          python3 run.py package ${{ matrix.name }}
+          python run.py build ${{ matrix.name }}
+          python run.py package ${{ matrix.name }}
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
         with:
