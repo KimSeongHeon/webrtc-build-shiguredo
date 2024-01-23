@@ -2,8 +2,8 @@
 
 set -ex
 
-sudo yum update
-sudo yum install java-1.8.0-openjdk.x86_64
+sudo yum update -y
+sudo yum install java-1.8.0-openjdk.x86_64 -y
 java -version
 
 sudo cp /etc/profile /etc/profile_backup
