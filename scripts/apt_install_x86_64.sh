@@ -14,7 +14,7 @@ source /etc/profile
 # download android sdk
 sudo curl https://dl.google.com/android/repository/sdk-tools-linux-3859397.zip -o android-sdk.zip
 # install unzip command
-sudo yum install unzip
+sudo yum install unzip -y
 # unzip into this folder
 sudo unzip android-sdk.zip -d .
 # remove the zip file
