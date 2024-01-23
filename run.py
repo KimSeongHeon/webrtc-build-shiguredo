@@ -956,8 +956,8 @@ def check_target(target):
         release = read_version_file('/etc/os-release')
         os = release['NAME']
         logging.info(f'OS: {os}')
-        if os != 'Ubuntu':
-            return False
+        # if os != 'Ubuntu':
+        #     return False
 
         # x86_64 環境以外ではビルド不可
         arch = platform.machine()
