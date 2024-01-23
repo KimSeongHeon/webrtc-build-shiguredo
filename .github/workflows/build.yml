@@ -39,7 +39,7 @@ jobs:
       matrix:
         name:
           - android
-    runs-on: self-hosted
+    runs-on: [self-hosted, instance-5]
     timeout-minutes: 900
     steps:
       - uses: actions/checkout@v4
