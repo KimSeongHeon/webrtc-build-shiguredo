@@ -2,31 +2,24 @@
 
 set -ex
 
-# grub-efi-amd64-signed がエラーになるので hold で回避する
-# ref: https://github.com/community/community/discussions/47863
-apt-mark hold grub-efi-amd64-signed
-apt-get update --fix-missing
-apt-get upgrade -y
+sudo yum update
+sudo yum install java-1.8.0-openjdk.x86_64
+java -version
 
-# tzdata を noninteractive にしないと実行が止まってしまう
-apt-get -y install tzdata
-echo 'Asia/Tokyo' > /etc/timezone
-dpkg-reconfigure -f noninteractive tzdata
+sudo cp /etc/profile /etc/profile_backup
+echo ‘export JAVA_HOME=/usr/lib/jvm/jre-1.8.0-openjdk’ | sudo tee -a /etc/profile
+echo ‘export JRE_HOME=/usr/lib/jvm/jre’ | sudo tee -a /etc/profile
+source /etc/profile
 
-export DEBIAN_FRONTEND=noninteractive
+# download android sdk
+sudo curl https://dl.google.com/android/repository/sdk-tools-linux-3859397.zip -o android-sdk.zip
+# install unzip command
+sudo apt-get install unzip OR sudo yum install unzip
+# unzip into this folder
+sudo unzip android-sdk.zip -d .
+# remove the zip file
+sudo rm android-sdk.zip
 
-apt-get -y install \
-  binutils \
-  git \
-  locales \
-  lsb-release \
-  ninja-build \
-  pkg-config \
-  python3 \
-  python3-setuptools \
-  rsync \
-  sudo \
-  unzip \
-  vim \
-  wget \
-  xz-utils
+sudo ./tools/bin/sdkmanager "tools"
+sudo ./tools/bin/sdkmanager --list
+sudo ./tools/bin/sdkmanager --licenses
