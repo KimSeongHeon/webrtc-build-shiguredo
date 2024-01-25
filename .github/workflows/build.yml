@@ -51,7 +51,7 @@ jobs:
         run: ./scripts/apt_install_arm.sh
       - name: Setup ${{ matrix.name }} for android
         if: matrix.name == 'android'
-        run: ./scripts/apt_install_x86_64.sh && ./apt-get install -y openjdk-11-jdk
+        run: ./scripts/apt_install_x86_64.sh && apt-get install -y openjdk-11-jdk
       - name: Build ${{ matrix.name }}
         run: |
           python3 run.py build ${{ matrix.name }}
