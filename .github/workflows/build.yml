@@ -45,13 +45,13 @@ jobs:
       - uses: actions/checkout@v4
       - name: Setup ${{ matrix.name }} for x86_64
         if: endsWith(matrix.name, '_x86_64')
-        run: sudo scripts/apt_install_x86_64.sh
+        run: ./scripts/apt_install_x86_64.sh
       - name: Setup ${{ matrix.name }} for arm
         if: contains(matrix.name, '_armv')
-        run: sudo scripts/apt_install_arm.sh
+        run: ./scripts/apt_install_arm.sh
       - name: Setup ${{ matrix.name }} for android
         if: matrix.name == 'android'
-        run: sudo scripts/apt_install_x86_64.sh && sudo apt-get install -y openjdk-11-jdk
+        run: ./scripts/apt_install_x86_64.sh && ./apt-get install -y openjdk-11-jdk
       - name: Build ${{ matrix.name }}
         run: |
           python3 run.py build ${{ matrix.name }}
